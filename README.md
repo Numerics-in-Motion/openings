@@ -16,8 +16,9 @@ own unholed twin: the load at which **global first yield** (peak von Mises anywh
 
 In the shorter beams the opening sits in a shear-heavy region and brings first yield forward. Bending
 grows faster with span than shear does, and by span/depth 20 the opening barely changes first yield:
-with shear-traction ends it moves to the midspan flange, with bearing pads it stays at the opening. The same load per metre
-means the total load grows with span.
+with shear-traction ends it moves to the midspan flange, with bearing pads it stays at the opening. Each
+ratio compares a beam with its twin of the same span; in linear elasticity it does not depend on the
+load level.
 
 ```sh
 python -m pip install -r requirements.txt
