@@ -8,8 +8,11 @@ peak von Mises stress first reaches yield is a valid first-yield measure; linear
 exactly as (solid peak / holed peak) of the solid beam's first-yield load. No plasticity, no buckling,
 no collapse load.
 
-Supports carry no point loads: each end's reaction is applied as the beam-theory shear traction over
-the end face (V Q(y) / I per unit height), so no singular stress sits anywhere in the read window.
+Supports carry no point loads. Production: each end's reaction is applied as the beam-theory shear
+traction over the end face (V Q(y) / I per unit height). Sensitivity: the reaction is spread uniformly
+over a 100 mm bearing pad under the bottom flange at each end. Ratios and first-yield locations are
+read over the FULL domain for both models; a read window 0.15 m inside each end is also evaluated, and
+the gates require the two to agree.
 
 """
 from __future__ import annotations
@@ -175,22 +178,25 @@ def boundary_edges(T):
 
 
 def mesh_checks(P, T, holes, span):
-    """(1) every boundary edge lies on the outer rectangle or on a hole circle;
-    (2) every hole-boundary node is on its circle to 1e-9; (3) no triangle straddles a flange-web
-    interface (all its vertices on one side, or on the line)."""
+    """(1) every boundary edge lies on ONE side of the outer rectangle (both ends on the same side) or
+    on a hole circle; (2) every hole-boundary node is on its circle to 1e-9, and each hole boundary
+    exists and closes (its edges add up to the circle's perimeter within 0.1 %); (3) no triangle
+    straddles a flange-web interface (all its vertices on one side, or on the line)."""
     worst_circle, off_boundary = 0.0, 0
+    hole_len = [0.0 for _ in holes]
+    sides = (lambda v: abs(v[0]) < 1e-9, lambda v: abs(v[0] - span) < 1e-9,
+             lambda v: abs(v[1]) < 1e-9, lambda v: abs(v[1] - H_SEC) < 1e-9)
     for a, b in boundary_edges(T):
         pa, pb = P[a], P[b]
-        on_rect = all(abs(v[0]) < 1e-9 or abs(v[0] - span) < 1e-9 or abs(v[1]) < 1e-9 or
-                      abs(v[1] - H_SEC) < 1e-9 for v in (pa, pb))
-        if on_rect:
+        if any(side(pa) and side(pb) for side in sides):
             continue
         hit = False
-        for cx, cy, r in holes:
+        for kh, (cx, cy, r) in enumerate(holes):
             da = abs(math.hypot(pa[0] - cx, pa[1] - cy) - r)
             db = abs(math.hypot(pb[0] - cx, pb[1] - cy) - r)
             if max(da, db) < 1e-6:
                 worst_circle = max(worst_circle, da, db)
+                hole_len[kh] += math.hypot(pa[0] - pb[0], pa[1] - pb[1])
                 hit = True
         if not hit:
             off_boundary += 1
@@ -200,8 +206,16 @@ def mesh_checks(P, T, holes, span):
         for yi in (TF, H_SEC - TF):
             if (ys < yi - 1e-12).any() and (ys > yi + 1e-12).any():
                 straddle += 1
+    perim = [ln / (2 * math.pi * r) for ln, (_, _, r) in zip(hole_len, holes)]
     return {"worst_hole_node_off_circle": worst_circle, "boundary_edges_off_geometry": off_boundary,
-            "triangles_straddling_interface": straddle}
+            "triangles_straddling_interface": straddle, "hole_boundary_over_perimeter": perim}
+
+
+def mesh_ok(m, n_holes):
+    # a 96-segment polygon's perimeter is 0.018 % short of the circle's
+    return (m["worst_hole_node_off_circle"] < 1e-9 and m["boundary_edges_off_geometry"] == 0
+            and m["triangles_straddling_interface"] == 0 and len(m["hole_boundary_over_perimeter"]) == n_holes
+            and all(abs(f - 1) < 1e-3 for f in m["hole_boundary_over_perimeter"]))
 
 
 # ---- Kirsch / Heywood check (same CST) ----------------------------------------------------------

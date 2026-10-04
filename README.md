@@ -14,8 +14,9 @@ own unholed twin: the load at which **global first yield** (peak von Mises anywh
 | 5.0 m | 16.7 | **89.3 %** | 86.8 % |
 | 6.0 m | 20.0 | **100.0 %** | 99.4 % |
 
-In the shorter beams the opening sits in a shear-heavy region and brings first yield forward; by
-span/depth 20 bending at midspan dominates and the opening barely changes it. The same load per metre
+In the shorter beams the opening sits in a shear-heavy region and brings first yield forward. Bending
+grows faster with span than shear does, and by span/depth 20 the opening barely changes first yield:
+with shear-traction ends it moves to the midspan flange, with bearing pads it stays at the opening. The same load per metre
 means the total load grows with span.
 
 ```sh

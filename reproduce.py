@@ -29,7 +29,9 @@ def peak(span, holes, support, h_near):
     P, T = W.make_mesh(holes, span=span, h_near=h_near)
     s = W.solve(P, T, support=support, span=span)
     m = (s["cent"][:, 0] > R["read_window_inset"]) & (s["cent"][:, 0] < span - R["read_window_inset"])
-    return float(s["vm"][m].max()), P, T
+    full = float(s["vm"].max())                       # global first yield: the whole beam
+    check("%g m: full-domain peak equals read-window peak" % span, abs(full / float(s["vm"][m].max()) - 1) < 1e-9)
+    return full, P, T
 
 
 def main():
@@ -47,8 +49,7 @@ def main():
             solid, _, _ = peak(span, [], "traction", 0.0012)
             holed, P, T = peak(span, [hole], "traction", hn)
             mc = W.mesh_checks(P, T, [hole], span)
-            check("%s m mesh geometry %r" % (span_s, mc), mc["worst_hole_node_off_circle"] < 1e-9 and
-                  mc["boundary_edges_off_geometry"] == 0 and mc["triangles_straddling_interface"] == 0)
+            check("%s m mesh geometry %r" % (span_s, mc), W.mesh_ok(mc, 1))
             ratio = holed / solid
             want = R[key][span_s]
             check("%s m ratio (%s mm) %r != %r" % (span_s, hn_s, ratio, want),
